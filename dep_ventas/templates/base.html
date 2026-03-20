@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}MOI{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/componentes.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <form id="csrf-form" method="post" style="display:none;">
+    {% csrf_token %}
+  </form>
+
+  <header>
+    <div class="header">
+      <table>
+        <tr>
+          <th><img class="logo-header" src="{% static 'img/logo-moi-blanco.png' %}" alt="logo"></th>
+          <th>Ventas - MOI</th>
+        </tr>
+      </table>
+    </div>
+  </header>
+
+  <div class="menu">
+    <table>
+      <tr>
+        <th><a href="{% url 'inicio' %}">Inicio</a></th>
+        <th><a href="{% url 'registrar_articulos' %}">Registrar Artículos</a></th>
+        <th><a href="{% url 'reportes' %}">Reportes</a></th>
+        
+        {% if request.session.usuario_rol == 'Gerente' %}
+          <th><a href="{% url 'gestion_usuarios' %}">Gestión Usuarios</a></th>
+        {% endif %}
+
+        <th><a href="{% url 'logout' %}">Cerrar Sesión</a></th>
+      </tr>
+    </table>
+  </div>
+
+  <div class="content">
+    {% block content %}
+    {% endblock %}
+  </div>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

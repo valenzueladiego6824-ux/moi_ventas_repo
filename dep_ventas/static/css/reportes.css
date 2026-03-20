@@ -1,0 +1,395 @@
+/* reportes.css */
+
+/* Contenedor principal */
+.reportes-container {
+    padding: 20px;
+    color: white;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.reportes-container h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    color: #F5D627;
+    text-align: center;
+}
+
+.reportes-container .subtitulo {
+    font-size: 1.2em;
+    margin-bottom: 30px;
+    text-align: center;
+    color: #ccc;
+}
+
+/* Grid de tarjetas */
+.reportes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
+}
+
+/* Tarjeta de reporte */
+.reporte-card {
+    background-color: #444;
+    border-radius: 5px;
+    padding: 20px;
+    border-left: 4px solid #F5D627;
+    transition: transform 0.2s;
+}
+
+.reporte-card:hover {
+    transform: translateY(-5px);
+    background-color: #4a4a4a;
+}
+
+/* ESTA ES LA DEFINICIÓN CORRECTA (reemplaza la anterior) */
+.reporte-icono {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.reporte-icono img {
+    width: 80px !important;
+    height: 80px !important;
+    object-fit: contain !important;
+}
+
+.reporte-card h3 {
+    color: #F5D627;
+    margin-bottom: 10px;
+    text-align: center;
+    font-size: 1.3em;
+}
+
+.reporte-card p {
+    color: #ccc;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 0.9em;
+}
+
+/* Formularios dentro de tarjetas */
+.reporte-card .form-control {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #555;
+    border-radius: 5px;
+    background-color: #333;
+    color: white;
+    font-size: 1em;
+}
+
+.reporte-card .form-control:focus {
+    outline: none;
+    border-color: #F5D627;
+}
+
+/* Botones de reporte */
+.btn-reporte {
+    background-color: #F5D627;
+    color: #000;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    width: 100%;
+    margin-bottom: 8px;
+    transition: background-color 0.2s;
+}
+
+.btn-reporte:hover {
+    background-color: #ffed4e;
+}
+
+/* ========================================
+   SECCIÓN DE FILTROS - NUEVA
+   ======================================== */
+
+.filters-section {
+    background: #444;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    border-left: 4px solid #F5D627;
+}
+
+.filters-section h3 {
+    color: #F5D627;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.filters-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.btn-filtro {
+    background-color: #F5D627;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+    flex: 1;
+    min-width: 120px;
+}
+
+.btn-filtro:hover {
+    background-color: #ffed4e;
+}
+
+.btn-filtro.excel {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-filtro.excel:hover {
+    background-color: #218838;
+}
+
+.btn-filtro.limpiar {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-filtro.limpiar:hover {
+    background-color: #5a6268;
+}
+
+/* Estilo para selects y inputs con datalist */
+.filters-section select.form-control,
+.filters-section input[list].form-control {
+    background-color: #333;
+    color: white;
+    border: 1px solid #555;
+    padding: 10px;
+    border-radius: 5px;
+    width: 100%;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23F5D627' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    padding-right: 35px;
+}
+
+.filters-section select.form-control:hover,
+.filters-section input[list].form-control:hover {
+    border-color: #F5D627;
+    background-color: #3a3a3a;
+}
+
+.filters-section select.form-control option {
+    background-color: #333;
+    color: white;
+    padding: 10px;
+}
+
+/* Total en resultados */
+.total-row {
+    background-color: #4a4a4a;
+    font-weight: bold;
+    border-top: 2px solid #F5D627;
+}
+
+.total-row td {
+    color: #28a745;
+}
+
+/* Modal para resultados (mismo estilo que inicio.css) */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.modal-content.modal-lg {
+    background-color: #333;
+    margin: 2% auto;
+    padding: 0;
+    border: 2px solid #F5D627;
+    border-radius: 10px;
+    width: 95%;
+    max-width: 1200px;
+    max-height: 90vh;
+    overflow-y: auto;
+    color: white;
+}
+
+.modal-header {
+    background-color: #555;
+    padding: 15px 20px;
+    border-bottom: 2px solid #F5D627;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #F5D627;
+    font-size: 1.5em;
+}
+
+.close-modal {
+    color: #fff;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.close-modal:hover {
+    color: #F5D627;
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-x: auto;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #555;
+    text-align: right;
+    background-color: #3a3a3a;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+}
+
+/* Tabla de resultados */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #444;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.data-table th,
+.data-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #555;
+    color: white;
+}
+
+.data-table th {
+    background-color: #555;
+    color: #F5D627;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.data-table tr:hover {
+    background-color: #4a4a4a;
+}
+
+.data-table td {
+    white-space: nowrap;
+}
+
+/* Botón éxito (verde) */
+.btn-success {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
+
+.btn-clear {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-clear:hover {
+    background-color: #5a6268;
+}
+
+/* Mensajes en el modal */
+.text-center {
+    text-align: center;
+    padding: 40px;
+    color: #ccc;
+}
+
+.error {
+    color: #dc3545;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .reportes-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content.modal-lg {
+        width: 98%;
+        margin: 1% auto;
+    }
+    
+    .data-table {
+        font-size: 0.9em;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 8px 10px;
+    }
+    
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filters-actions {
+        flex-direction: column;
+    }
+    
+    .btn-filtro {
+        width: 100%;
+    }
+}

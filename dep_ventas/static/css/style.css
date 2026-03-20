@@ -1,0 +1,84 @@
+*{
+	padding:0;
+	margin:0;
+}
+
+body{
+	background-color:#000;
+}
+
+header{
+	background-color:#555;
+    border-bottom: 5px solid #F5D627;
+}
+
+header .header table{
+	border:hidden;
+}
+
+header .header tr img{
+    margin-top: 10px;
+	width:100px;
+}
+
+header .header tr th{
+	font-size:30px;
+	color:white;
+	font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+.logo-header {
+    width: 100px;
+    height: auto;
+    display: block;
+}
+
+/* Centrar "Ventas - MOI" y alinear logo a la izquierda */
+.header table {
+    width: 100%;
+}
+
+.header table tr th:first-child {
+    text-align: left;
+    width: auto;
+}
+
+.header table tr th:last-child {
+    text-align: center;
+    width: 100%;
+}
+
+.logo-header {
+    width: 100px;
+    height: auto;
+    display: block;
+}
+
+.menu table{
+	width:100%;
+	border:hidden;
+	background-color:#777;
+}
+
+.menu table tr th{
+	font-size:20px;
+	font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+	border-right:solid;
+	border-color:#16264a;
+	border-width:1px;
+	height:30px;
+}
+
+.menu a{
+	color:white;
+	text-decoration:none;
+}
+
+.menu table tr th:hover{
+    background-color:#F5D627;	
+}
+
+.menu table tr th:hover a{
+    color:#333;
+    text-decoration:none;
+}

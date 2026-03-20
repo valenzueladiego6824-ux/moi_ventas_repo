@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }} - MOI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/inicio.css' %}">
+<link rel="stylesheet" href="{% static 'css/registro.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="registro-section">
+    <h1>{{ titulo }}</h1>
+    <p>{{ mensaje }}</p>
+
+    <form method="post" id="ordenForm">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="alert alert-error">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <!-- Sección 1: Información General de la Orden -->
+        <div class="form-section">
+            <h3>Información General de la Orden</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    {{ form.numero_orden.label_tag }}
+                    {{ form.numero_orden }}
+                    {% if form.numero_orden.errors %}
+                    <div class="error-message">
+                        {{ form.numero_orden.errors }}
+                    </div>
+                    {% endif %}    
+                </div>
+
+                <div class="form-group">
+                    {{ form.obra_input.label_tag }}
+                    {{ form.obra_input }}
+                    <datalist id="obra_list"></datalist>
+                    {% if form.obra_input.errors %}
+                    <div class="error-message">
+                        {{ form.obra_input.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.fecha.label_tag }}
+                    {{ form.fecha }}
+                    {% if form.fecha.errors %}
+                    <div class="error-message">
+                        {{ form.fecha.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.solicitante_input.label_tag }}
+                    {{ form.solicitante_input }}
+                    <datalist id="solicitante_list"></datalist>
+                    {% if form.solicitante_input.errors %}
+                    <div class="error-message">
+                        {{ form.solicitante_input.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.estatus_input.label_tag }}
+                    {{ form.estatus_input }}
+                    <datalist id="estatus_list"></datalist>
+                    {% if form.estatus_input.errors %}
+                    <div class="error-message">
+                        {{ form.estatus_input.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- NUEVO: Campo Método de Pago -->
+                <div class="form-group">
+                    {{ form.metodo_pago.label_tag }}
+                    {{ form.metodo_pago }}
+                    <datalist id="metodo_pago_list">
+                        <option value="CONTADO">
+                        <option value="CREDITO">
+                        <option value="COMBINADO">
+                        <option value="NO APLICA">
+                    </datalist>
+                    {% if form.metodo_pago.errors %}
+                    <div class="error-message">
+                        {{ form.metodo_pago.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 2: Datos de la Factura (UNA SOLA) -->
+        <div class="form-section">
+            <h3>Datos de la Factura</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="folio_factura">Folio de factura:</label>
+                    <input type="text" id="folio_factura" name="folio_factura" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="fecha_factura">Fecha de Emisión:</label>
+                    <input type="date" id="fecha_factura" name="fecha_factura" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="proveedor">Proveedor:</label>
+                    <input list="proveedor_list" id="proveedor" name="proveedor" class="form-control" required>
+                    <datalist id="proveedor_list"></datalist>
+                </div>
+
+                <div class="form-group">
+                    <label for="subtotal">Subtotal:</label>
+                    <input type="number" id="subtotal" name="subtotal" step="0.01" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="iva">IVA:</label>
+                    <input type="number" id="iva" name="iva" step="0.01" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="total">Total:</label>
+                    <input type="number" id="total" name="total" step="0.01" class="form-control" required>
+                </div>
+            </div>
+
+            <!-- Artículos de la factura -->
+            <h4>Artículos de la Factura</h4>
+            <table class="articulos-table" id="articulos-table">
+                <thead>
+                    <tr>
+                        <th>Descripción</th>
+                        <th>Unidad</th>
+                        <th>Clave Artículo</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unitario</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="articulos-container">
+                    <!-- Los artículos se agregarán aquí dinámicamente -->
+                </tbody>
+            </table>
+            
+            <button type="button" class="btn-add" onclick="agregarArticulo()">
+                + Agregar artículo
+            </button>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-submit">Registrar Orden</button>
+            <a href="{% url 'inicio' %}" class="btn-cancel">Cancelar</a>
+        </div>
+
+        <datalist id="articulos_descripcion_list"></datalist>
+        <datalist id="articulos_unidad_list"></datalist>
+
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales
+let obrasData = [];
+let proveedoresData = [];
+let estatusData = [];
+let solicitantesData = [];
+let contadorArticulos = 0;
+
+// Cargar datos al inicializar la página
+document.addEventListener('DOMContentLoaded', function() {
+    cargarDatalists();
+    establecerFechasActuales();
+    
+    // Agregar primer artículo por defecto
+    agregarArticulo();
+});
+
+function cargarDatalists() {
+    // Cargar obras
+    fetch("{% url 'api_obras' %}")
+        .then(response => response.json())
+        .then(data => {
+            const datalist = document.getElementById('obra_list');
+            datalist.innerHTML = '';
+            data.forEach(nombre => {
+                const option = document.createElement('option');
+                option.value = nombre;
+                datalist.appendChild(option);
+            });
+        });
+
+    // Cargar proveedores
+    fetch("{% url 'api_proveedores' %}")
+        .then(response => response.json())
+        .then(data => {
+            proveedoresData = data;
+            const datalist = document.getElementById('proveedor_list');
+            datalist.innerHTML = '';
+            data.forEach(proveedor => {
+                const option = document.createElement('option');
+                option.value = proveedor.nombre;
+                datalist.appendChild(option);
+            });
+        });
+
+    // Cargar estatus
+    fetch("{% url 'api_estatus' %}")
+        .then(response => response.json())
+        .then(data => {
+            estatusData = data;
+            const datalist = document.getElementById('estatus_list');
+            datalist.innerHTML = '';
+            data.forEach(estatus => {
+                const option = document.createElement('option');
+                option.value = estatus;
+                datalist.appendChild(option);
+            });
+        });
+
+    // Cargar solicitantes
+    fetch("{% url 'api_solicitantes' %}")
+        .then(response => response.json())
+        .then(data => {
+            solicitantesData = data;
+            const datalist = document.getElementById('solicitante_list');
+            datalist.innerHTML = '';
+            data.forEach(solicitante => {
+                const option = document.createElement('option');
+                option.value = solicitante;
+                datalist.appendChild(option);
+            });
+        });
+
+
+    // Agregar dentro de cargarDatalists()
+    fetch("{% url 'api_articulos' %}")
+        .then(response => response.json())
+        .then(data => {
+            const datalist = document.getElementById('articulos_descripcion_list');
+            datalist.innerHTML = '';
+            data.forEach(nombre => {
+                const option = document.createElement('option');
+                option.value = nombre;
+                datalist.appendChild(option);
+            });
+        });
+
+    fetch("{% url 'api_unidades' %}")
+        .then(response => response.json())
+        .then(data => {
+            const datalist = document.getElementById('articulos_unidad_list');
+            datalist.innerHTML = '';
+            data.forEach(unidad => {
+                const option = document.createElement('option');
+                option.value = unidad;
+                datalist.appendChild(option);
+            });
+        });
+}
+
+function establecerFechasActuales() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('fecha').value = today;
+    document.getElementById('fecha_factura').value = today;
+}
+
+// Función para agregar artículos - CORREGIDA con los atributos list
+function agregarArticulo() {
+    contadorArticulos++;
+    
+    const tbody = document.getElementById('articulos-container');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td>
+            <input type="text" name="articulos[${contadorArticulos}][descripcion]" 
+                   list="articulos_descripcion_list"
+                   placeholder="Descripción" class="form-control" required>
+        </td>
+        <td>
+            <input type="text" name="articulos[${contadorArticulos}][unidad]" 
+                   list="articulos_unidad_list"
+                   placeholder="Unidad" class="form-control" required>
+        </td>
+        <td>
+            <input type="text" name="articulos[${contadorArticulos}][clave]" 
+                   placeholder="Clave (opcional)" class="form-control">
+        </td>
+        <td>
+            <input type="number" name="articulos[${contadorArticulos}][cantidad]" 
+                   step="0.01" min="0.01" value="1" class="form-control" required>
+        </td>
+        <td>
+            <input type="number" name="articulos[${contadorArticulos}][precio]" 
+                   step="0.01" min="0" value="0" class="form-control" required>
+        </td>
+        <td>
+            <button type="button" class="btn-remove" onclick="this.closest('tr').remove()">Eliminar</button>
+        </td>
+    `;
+    tbody.appendChild(tr);
+}
+
+// Validación del formulario
+document.getElementById('ordenForm').addEventListener('submit', function(e) {
+    const articulos = document.querySelectorAll('#articulos-container tr');
+    if (articulos.length === 0) {
+        e.preventDefault();
+        alert('Debe agregar al menos un artículo.');
+        return;
+    }
+});
+</script>
+{% endblock %}

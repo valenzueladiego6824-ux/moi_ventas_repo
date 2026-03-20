@@ -1,0 +1,545 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inicio - MOI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/inicio.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="inicio-section">
+  <div class="welcome-header">
+    <h1>Bienvenido, {{ request.session.usuario_nombre }}</h1>
+    <p>Sistema de Gestión - Ordenes de Compra</p>
+  </div>
+
+  <!-- BARRA DE BÚSQUEDA -->
+  <div class="control-panel">
+    <div class="search-bar">
+      <input type="text" id="busqueda" placeholder="Buscar por orden, solicitante, obra, folio, estatus..." class="search-input">
+      <button onclick="filtrarDatos()" class="btn-search">Buscar</button>
+      <button onclick="limpiarBusqueda()" class="btn-clear">Limpiar</button>
+    </div>
+  </div>
+
+  <!-- Tabla de datos -->
+  <div class="table-container">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Orden Compra</th>
+          <th>Fecha</th>
+          <th>Estatus</th>
+          <th>Método Pago</th>
+          <th>Solicitante</th>
+          <th>Obra</th>
+          <th>Folio Factura</th>
+          <th>Subtotal</th>
+          <th>IVA</th>
+          <th>Total</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-datos">
+        <!-- Los datos se cargan automáticamente -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Contador de resultados -->
+  <div class="result-count">
+    <span id="contador-resultados">Cargando datos...</span>
+  </div>
+</div>
+
+<!-- Modal para ver/editar detalles de la orden -->
+<div id="modalDetalles" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Detalles de Orden: <span id="modal-numero-orden"></span></h2>
+      <span class="close-modal">&times;</span>
+    </div>
+    <div class="modal-body">
+      <div class="info-general">
+        <h3>Información General</h3>
+        <div class="info-grid">
+          <div class="campo-editable">
+            <strong>Solicitante:</strong>
+            <span class="campo-valor" id="modal-solicitante"></span>
+            <input type="text" id="modal-solicitante-input" class="form-control edit-input" style="display: none;">
+          </div>
+          <div class="campo-editable">
+            <strong>Obra:</strong>
+            <span class="campo-valor" id="modal-obra"></span>
+            <input type="text" id="modal-obra-input" class="form-control edit-input" style="display: none;">
+          </div>
+          <div class="campo-editable">
+            <strong>Fecha:</strong>
+            <span class="campo-valor" id="modal-fecha"></span>
+            <input type="date" id="modal-fecha-input" class="form-control edit-input" style="display: none;">
+          </div>
+          <div class="campo-editable">
+            <strong>Estatus:</strong>
+            <span class="campo-valor" id="modal-estatus"></span>
+            <select id="modal-estatus-input" class="form-control edit-input" style="display: none;">
+              <option value="PENDIENTE">PENDIENTE</option>
+              <option value="CERRADA">CERRADA</option>
+              <option value="CANCELADA">CANCELADA</option>
+            </select>
+          </div>
+          
+          <!-- NUEVO: Campo de Método de Pago en modal -->
+          <div class="campo-editable">
+            <strong>Método de Pago:</strong>
+            <span class="campo-valor" id="modal-metodo-pago"></span>
+            <select id="modal-metodo-pago-input" class="form-control edit-input" style="display: none;">
+                <option value="CONTADO">CONTADO</option>
+                <option value="CREDITO">CREDITO</option>
+                <option value="COMBINADO">COMBINADO</option>
+                <option value="NO APLICA">NO APLICA</option>  <!-- Cambiado -->
+            </select>
+          </div>
+          
+          <div class="campo-editable">
+            <strong>Folio Factura:</strong>
+            <span class="campo-valor" id="modal-folio"></span>
+            <input type="text" id="modal-folio-input" class="form-control edit-input" style="display: none;">
+          </div>
+          <div class="campo-editable">
+            <strong>Fecha Emisión:</strong>
+            <span class="campo-valor" id="modal-fecha-emision"></span>
+            <input type="date" id="modal-fecha-emision-input" class="form-control edit-input" style="display: none;">
+          </div>
+          <div class="campo-editable">
+            <strong>Subtotal:</strong>
+            <span class="campo-valor" id="modal-subtotal"></span>
+            <input type="number" id="modal-subtotal-input" class="form-control edit-input" step="0.01" style="display: none;">
+          </div>
+          <div class="campo-editable">
+            <strong>IVA:</strong>
+            <span class="campo-valor" id="modal-iva"></span>
+            <input type="number" id="modal-iva-input" class="form-control edit-input" step="0.01" style="display: none;">
+          </div>
+          <div class="campo-editable">
+            <strong>Total:</strong>
+            <span class="campo-valor" id="modal-total"></span>
+            <input type="number" id="modal-total-input" class="form-control edit-input" step="0.01" style="display: none;">
+          </div>
+        </div>
+      </div>
+      
+      <div class="articulos-section">
+        <h3>Artículos de la Orden</h3>
+        <div class="table-container-sm">
+          <table class="data-table-sm" id="articulos-table">
+            <thead>
+              <tr>
+                <th>Artículo</th>
+                <th>Unidad</th>
+                <th>Cantidad</th>
+                <th>Precio Unitario</th>
+                <th class="edit-header" style="display: none;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="modal-articulos">
+              <!-- Los artículos se cargarán aquí -->
+            </tbody>
+          </table>
+        </div>
+        <button id="btn-agregar-articulo" class="btn-add-small" style="display: none; margin-top: 10px;" onclick="agregarArticuloEdicion()">
+          + Agregar artículo
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+    <button id="btn-editar" onclick="habilitarEdicion()" class="btn-clear">Editar</button>
+    <button id="btn-guardar" onclick="guardarCambios()" 
+        style="background-color: #8bc34a; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 5px;" 
+        disabled>Guardar Cambios</button>
+      <button id="btn-cancelar" onclick="cancelarEdicion()" class="btn-clear" disabled>Cancelar</button>
+      <button onclick="cerrarModal()" class="btn-clear">Cerrar</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variable global para el modal
+let modal = null;
+let modoEdicion = false;
+let datosOriginales = null;
+
+// Cargar datos automáticamente al abrir la página
+document.addEventListener('DOMContentLoaded', function() {
+  cargarTodos();
+  
+  // Inicializar modal
+  modal = document.getElementById('modalDetalles');
+  
+  // Cerrar modal al hacer click en la X
+  document.querySelector('.close-modal').addEventListener('click', cerrarModal);
+  
+  // Cerrar modal al hacer click fuera del contenido
+  window.addEventListener('click', function(event) {
+    if (event.target === modal) {
+      cerrarModal();
+    }
+  });
+  
+  // Cerrar modal con ESC
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      cerrarModal();
+    }
+  });
+});
+
+function cargarTodos() {
+  fetch("{% url 'api_consultar_datos' %}")
+    .then(response => response.json())
+    .then(data => {
+      actualizarTabla(data);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      document.getElementById('tabla-datos').innerHTML = 
+        '<tr><td colspan="11" style="text-align: center; color: red;">Error al cargar los datos</td></tr>';
+      document.getElementById('contador-resultados').textContent = 'Error de conexión';
+    });
+}
+
+function filtrarDatos() {
+  const busqueda = document.getElementById('busqueda').value.trim();
+  
+  if (busqueda === '') {
+    cargarTodos();
+    return;
+  }
+
+  fetch(`{% url 'api_consultar_datos' %}?busqueda=${encodeURIComponent(busqueda)}`)
+    .then(response => response.json())
+    .then(data => {
+      actualizarTabla(data);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error al filtrar los datos');
+    });
+}
+
+function limpiarBusqueda() {
+  document.getElementById('busqueda').value = '';
+  cargarTodos();
+}
+
+function actualizarTabla(data) {
+  const tbody = document.getElementById('tabla-datos');
+  const contador = document.getElementById('contador-resultados');
+  
+  tbody.innerHTML = '';
+  
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align: center;">No se encontraron resultados</td></tr>';
+    contador.textContent = 'Mostrando 0 resultados';
+    return;
+  }
+  
+  data.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${item.numero_orden}</strong></td>
+      <td>${formatearFecha(item.fecha)}</td>
+      <td><span class="estado ${getClaseEstatus(item.estatus)}">${item.estatus || 'N/A'}</span></td>
+      <td>${item.metodo_pago || 'N/A'}</td>
+      <td>${item.solicitante || 'N/A'}</td>
+      <td>${item.obra || 'N/A'}</td>
+      <td>${item.folio_factura || 'N/A'}</td>
+      <td>$${formatearMoneda(item.subtotal)}</td>
+      <td>$${formatearMoneda(item.iva)}</td>
+      <td><strong>$${formatearMoneda(item.total)}</strong></td>
+      <td>
+        <button class="btn-accion btn-ver" onclick="verDetalles('${item.numero_orden}')" title="Ver detalles">Ver</button>
+        <button class="btn-accion btn-eliminar" onclick="eliminarOrden('${item.numero_orden}')" title="Eliminar orden">Eliminar</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  
+  contador.textContent = `Mostrando ${data.length} resultado${data.length !== 1 ? 's' : ''}`;
+}
+
+function verDetalles(numeroOrden) {
+  document.getElementById('modal-articulos').innerHTML = '<tr><td colspan="5" style="text-align: center;">Cargando...</td></tr>';
+  modal.style.display = 'block';
+  
+  fetch(`/api/detalles-orden/${numeroOrden}/`)
+    .then(response => response.json())
+    .then(data => {
+      llenarModal(data);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      document.getElementById('modal-articulos').innerHTML = 
+        '<tr><td colspan="5" style="text-align: center; color: red;">Error al cargar los datos</td></tr>';
+    });
+}
+
+function llenarModal(data) {
+  window.datosActuales = data;
+  
+  document.getElementById('modal-numero-orden').textContent = data.numero_orden;
+  document.getElementById('modal-solicitante').textContent = data.solicitante || '';
+  document.getElementById('modal-obra').textContent = data.obra || '';
+  document.getElementById('modal-fecha').textContent = formatearFecha(data.fecha);
+  document.getElementById('modal-estatus').textContent = data.estatus || '';
+  
+  // Método de pago directo de la BD
+  const metodoPagoSpan = document.getElementById('modal-metodo-pago');
+  const metodoPagoSelect = document.getElementById('modal-metodo-pago-input');
+  
+  if (data.metodo_pago) {
+    metodoPagoSpan.textContent = data.metodo_pago;
+    metodoPagoSelect.value = data.metodo_pago;
+  } else {
+    metodoPagoSpan.textContent = 'NO_APLICA';
+    metodoPagoSelect.value = 'NO_APLICA';
+  }
+  
+  document.getElementById('modal-folio').textContent = data.folio_factura || '';
+  document.getElementById('modal-fecha-emision').textContent = formatearFecha(data.fecha_emision);
+  document.getElementById('modal-subtotal').textContent = formatearMoneda(data.subtotal);
+  document.getElementById('modal-iva').textContent = formatearMoneda(data.iva);
+  document.getElementById('modal-total').textContent = formatearMoneda(data.total);
+  
+  // Asignar valores a los inputs de edición
+  document.getElementById('modal-solicitante-input').value = data.solicitante || '';
+  document.getElementById('modal-obra-input').value = data.obra || '';
+  document.getElementById('modal-fecha-input').value = data.fecha || '';
+  document.getElementById('modal-estatus-input').value = data.estatus || '';
+  document.getElementById('modal-folio-input').value = data.folio_factura || '';
+  document.getElementById('modal-fecha-emision-input').value = data.fecha_emision || '';
+  document.getElementById('modal-subtotal-input').value = data.subtotal || 0;
+  document.getElementById('modal-iva-input').value = data.iva || 0;
+  document.getElementById('modal-total-input').value = data.total || 0;
+  
+  cargarArticulosModal(data.articulos);
+  deshabilitarEdicion();
+}
+
+function cargarArticulosModal(articulos) {
+  const tbody = document.getElementById('modal-articulos');
+  tbody.innerHTML = '';
+  
+  if (articulos && articulos.length > 0) {
+    articulos.forEach((articulo, index) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <span class="articulo-desc">${articulo.nombre_articulo || ''}</span>
+          <input type="text" class="form-control edit-input articulo-desc-input" value="${articulo.nombre_articulo || ''}" style="display: none;">
+        </td>
+        <td>
+          <span class="articulo-unidad">${articulo.unidad || ''}</span>
+          <input type="text" class="form-control edit-input articulo-unidad-input" value="${articulo.unidad || ''}" style="display: none;">
+        </td>
+        <td>
+          <span class="articulo-cantidad">${articulo.cantidad.toFixed(2)}</span>
+          <input type="number" class="form-control edit-input articulo-cantidad-input" step="0.01" value="${articulo.cantidad}" style="display: none;">
+        </td>
+        <td>
+          <span class="articulo-precio">$${formatearMoneda(articulo.precio_unitario)}</span>
+          <input type="number" class="form-control edit-input articulo-precio-input" step="0.01" value="${articulo.precio_unitario}" style="display: none;">
+        </td>
+        <td class="edit-actions" style="display: none;">
+          <button class="btn-remove-small" onclick="eliminarArticulo(this)">✕</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } else {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No hay artículos registrados</td></tr>';
+  }
+}
+
+function habilitarEdicion() {
+  modoEdicion = true;
+  
+  document.querySelectorAll('.campo-valor').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.edit-input').forEach(el => el.style.display = 'block');
+  
+  document.querySelector('.edit-header').style.display = 'table-cell';
+  document.querySelectorAll('.edit-actions').forEach(el => el.style.display = 'table-cell');
+  document.querySelectorAll('.articulos-section tbody tr').forEach(row => {
+    row.querySelectorAll('span').forEach(span => span.style.display = 'none');
+    row.querySelectorAll('input').forEach(input => input.style.display = 'block');
+  });
+  
+  document.getElementById('btn-agregar-articulo').style.display = 'inline-block';
+  
+  document.getElementById('btn-editar').disabled = true;
+  document.getElementById('btn-guardar').disabled = false;
+  document.getElementById('btn-cancelar').disabled = false;
+}
+
+function deshabilitarEdicion() {
+  modoEdicion = false;
+  
+  document.querySelectorAll('.campo-valor').forEach(el => el.style.display = 'block');
+  document.querySelectorAll('.edit-input').forEach(el => el.style.display = 'none');
+  
+  document.querySelector('.edit-header').style.display = 'none';
+  document.querySelectorAll('.edit-actions').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.articulos-section tbody tr').forEach(row => {
+    row.querySelectorAll('span').forEach(span => span.style.display = 'table-cell');
+    row.querySelectorAll('input').forEach(input => input.style.display = 'none');
+  });
+  
+  document.getElementById('btn-agregar-articulo').style.display = 'none';
+  
+  document.getElementById('btn-editar').disabled = false;
+  document.getElementById('btn-guardar').disabled = true;
+  document.getElementById('btn-cancelar').disabled = true;
+}
+
+function cancelarEdicion() {
+  llenarModal(window.datosActuales);
+}
+
+function agregarArticuloEdicion() {
+  const tbody = document.getElementById('modal-articulos');
+  const newRow = document.createElement('tr');
+  newRow.innerHTML = `
+    <td>
+      <span class="articulo-desc" style="display: none;"></span>
+      <input type="text" class="form-control edit-input articulo-desc-input" placeholder="Descripción" value="">
+    </td>
+    <td>
+      <span class="articulo-unidad" style="display: none;"></span>
+      <input type="text" class="form-control edit-input articulo-unidad-input" placeholder="Unidad" value="">
+    </td>
+    <td>
+      <span class="articulo-cantidad" style="display: none;"></span>
+      <input type="number" class="form-control edit-input articulo-cantidad-input" step="0.01" value="1">
+    </td>
+    <td>
+      <span class="articulo-precio" style="display: none;"></span>
+      <input type="number" class="form-control edit-input articulo-precio-input" step="0.01" value="0">
+    </td>
+    <td class="edit-actions">
+      <button class="btn-remove-small" onclick="eliminarArticulo(this)">✕</button>
+    </td>
+  `;
+  tbody.appendChild(newRow);
+}
+
+function eliminarArticulo(btn) {
+  btn.closest('tr').remove();
+}
+
+function guardarCambios() {
+  const datosActualizados = {
+    numero_orden: document.getElementById('modal-numero-orden').textContent,
+    solicitante: document.getElementById('modal-solicitante-input').value,
+    obra: document.getElementById('modal-obra-input').value,
+    fecha: document.getElementById('modal-fecha-input').value,
+    estatus: document.getElementById('modal-estatus-input').value,
+    metodo_pago: document.getElementById('modal-metodo-pago-input').value,
+    folio_factura: document.getElementById('modal-folio-input').value,
+    fecha_emision: document.getElementById('modal-fecha-emision-input').value,
+    subtotal: parseFloat(document.getElementById('modal-subtotal-input').value) || 0,
+    iva: parseFloat(document.getElementById('modal-iva-input').value) || 0,
+    total: parseFloat(document.getElementById('modal-total-input').value) || 0,
+    articulos: []
+  };
+  
+  document.querySelectorAll('#modal-articulos tr').forEach(row => {
+    const descInput = row.querySelector('.articulo-desc-input');
+    const unidadInput = row.querySelector('.articulo-unidad-input');
+    const cantidadInput = row.querySelector('.articulo-cantidad-input');
+    const precioInput = row.querySelector('.articulo-precio-input');
+    
+    if (descInput && unidadInput && cantidadInput && precioInput) {
+      if (descInput.value && unidadInput.value) {
+        datosActualizados.articulos.push({
+          nombre_articulo: descInput.value,
+          unidad: unidadInput.value,
+          cantidad: parseFloat(cantidadInput.value) || 0,
+          precio_unitario: parseFloat(precioInput.value) || 0
+        });
+      }
+    }
+  });
+  
+  fetch(`/api/actualizar-orden/${datosActualizados.numero_orden}/`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(datosActualizados)
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('Cambios guardados');
+      deshabilitarEdicion();
+      cargarTodos();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  })
+  .catch(error => {
+    alert('Error de conexión');
+  });
+}
+
+function eliminarOrden(numeroOrden) {
+  if (confirm(`¿Eliminar orden ${numeroOrden}?`)) {
+    fetch(`/api/eliminar-orden/${numeroOrden}/`, {method: 'DELETE'})
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+          cargarTodos();
+        } else {
+          alert('Error: ' + (data.error || 'Error desconocido'));
+        }
+      })
+      .catch(error => {
+        alert('Error de conexión');
+      });
+  }
+}
+
+function cerrarModal() {
+  modal.style.display = 'none';
+  deshabilitarEdicion();
+}
+
+function formatearFecha(fechaStr) {
+  if (!fechaStr) return '';
+  try {
+    const fecha = new Date(fechaStr);
+    return fecha.toISOString().split('T')[0];
+  } catch {
+    return fechaStr;
+  }
+}
+
+function formatearMoneda(monto) {
+  const valor = parseFloat(monto) || 0;
+  return valor.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function getClaseEstatus(estatus) {
+  if (!estatus) return 'inactivo';
+  const estatusUpper = estatus.toUpperCase();
+  if (estatusUpper === 'CERRADA') return 'activo';
+  if (estatusUpper === 'PENDIENTE') return 'pendiente';
+  return 'inactivo';
+}
+
+document.getElementById('busqueda').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') filtrarDatos();
+});
+</script>
+{% endblock %}

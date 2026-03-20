@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }} - MOI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/inicio.css' %}">
+<link rel="stylesheet" href="{% static 'css/gestion-usuarios.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="inicio-section">
+    <div class="welcome-header">
+        <h1>{{ titulo }}</h1>
+        <p>Administración de usuarios del sistema</p>
+    </div>
+
+    <!-- Botón Nuevo Usuario -->
+    <div class="control-panel">
+        <button onclick="abrirModalCrear()" class="btn-nuevo">
+            + Nuevo Usuario
+        </button>
+    </div>
+
+    <!-- Tabla de usuarios -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Apellido</th>
+                    <th>Usuario</th>
+                    <th>Rol</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-usuarios">
+                <!-- Se carga vía AJAX -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal para Crear Usuario -->
+<div id="modalCrear" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Nuevo Usuario</h2>
+            <span class="close-modal" onclick="cerrarModal('crear')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="form-crear" method="post">
+                {% csrf_token %}
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" id="crear-nombre" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Apellido</label>
+                        <input type="text" id="crear-apellido" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Usuario</label>
+                        <input type="text" id="crear-usuario" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="crear-password" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Rol</label>
+                        <select id="crear-rol" class="form-control">
+                            <option value="Usuario">Usuario</option>
+                            <option value="Gerente">Gerente</option>
+                        </select>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button onclick="guardarUsuario()" class="btn-success">Guardar</button>
+            <button onclick="cerrarModal('crear')" class="btn-clear">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Ver/Editar Usuario -->
+<div id="modalEditar" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Detalles de Usuario: <span id="modal-usuario-nombre"></span></h2>
+            <span class="close-modal" onclick="cerrarModal('editar')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="form-editar" method="post">
+                {% csrf_token %}
+                <div class="info-general">
+                    <div class="info-grid">
+                        <div class="campo-editable">
+                            <strong>Nombre:</strong>
+                            <span class="campo-valor" id="ver-nombre"></span>
+                            <input type="text" id="editar-nombre" class="form-control edit-input" style="display: none;">
+                        </div>
+                        <div class="campo-editable">
+                            <strong>Apellido:</strong>
+                            <span class="campo-valor" id="ver-apellido"></span>
+                            <input type="text" id="editar-apellido" class="form-control edit-input" style="display: none;">
+                        </div>
+                        <div class="campo-editable">
+                            <strong>Usuario:</strong>
+                            <span class="campo-valor" id="ver-usuario"></span>
+                            <input type="text" id="editar-usuario" class="form-control edit-input" style="display: none;" required>
+                        </div>
+                        <div class="campo-editable">
+                            <strong>Rol:</strong>
+                            <span class="campo-valor" id="ver-rol"></span>
+                            <select id="editar-rol" class="form-control edit-input" style="display: none;">
+                                <option value="Usuario">Usuario</option>
+                                <option value="Gerente">Gerente</option>
+                            </select>
+                        </div>
+                        <div class="campo-editable">
+                            <strong>Nueva Contraseña:</strong>
+                            <span class="campo-valor password-hint">(dejar en blanco para mantener)</span>
+                            <input type="password" id="editar-password" class="form-control edit-input" 
+                                   placeholder="Nueva contraseña" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button id="btn-editar" onclick="habilitarEdicion()" class="btn-clear">Editar</button>
+            <button id="btn-guardar" onclick="guardarCambios()" class="btn-success" disabled>Guardar Cambios</button>
+            <button id="btn-cancelar" onclick="cancelarEdicion()" class="btn-clear" disabled>Cancelar</button>
+            <button onclick="cerrarModal('editar')" class="btn-clear">Cerrar</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales
+let modoEdicion = false;
+let usuarioActual = null;
+
+// Cargar usuarios al iniciar
+document.addEventListener('DOMContentLoaded', function() {
+    cargarUsuarios();
+});
+
+function cargarUsuarios() {
+    fetch("{% url 'api_usuarios' %}")
+        .then(response => response.json())
+        .then(data => {
+            actualizarTabla(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+function actualizarTabla(usuarios) {
+    const tbody = document.getElementById('tabla-usuarios');
+    tbody.innerHTML = '';
+    
+    usuarios.forEach(u => {
+        const tr = document.createElement('tr');
+        
+        const rolClass = u.rol === 'Gerente' ? 'rol-gerente' : '';
+        
+        tr.innerHTML = `
+            <td>${u.id}</td>
+            <td>${u.nombre}</td>
+            <td>${u.apellido || ''}</td>
+            <td>${u.usuario}</td>
+            <td class="${rolClass}">${u.rol}</td>
+            <td>
+                <button class="btn-accion btn-ver" onclick="verDetalles(${u.id})" title="Ver/Editar">Ver</button>
+                <button class="btn-accion btn-eliminar" onclick="eliminarUsuario(${u.id}, '${u.usuario}')" title="Eliminar">Eliminar</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Funciones para modal crear
+function abrirModalCrear() {
+    document.getElementById('modalCrear').style.display = 'block';
+}
+
+function guardarUsuario() {
+    const data = {
+        nombre: document.getElementById('crear-nombre').value,
+        apellido: document.getElementById('crear-apellido').value,
+        usuario: document.getElementById('crear-usuario').value,
+        password: document.getElementById('crear-password').value,
+        rol: document.getElementById('crear-rol').value
+    };
+    
+    // Obtener token CSRF del formulario
+    const csrftoken = document.querySelector('#form-crear [name=csrfmiddlewaretoken]').value;
+    
+    fetch("{% url 'api_crear_usuario' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Usuario creado correctamente');
+            cerrarModal('crear');
+            cargarUsuarios();
+            document.getElementById('form-crear').reset();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error de conexión');
+    });
+}
+
+// Funciones para modal editar
+function verDetalles(usuarioId) {
+    usuarioActual = usuarioId;
+    document.getElementById('modalEditar').style.display = 'block';
+    document.getElementById('modal-usuario-nombre').textContent = 'Cargando...';
+    
+    fetch(`/api/usuarios/${usuarioId}/`)
+        .then(response => response.json())
+        .then(data => {
+            llenarModalEdicion(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+function llenarModalEdicion(data) {
+    document.getElementById('modal-usuario-nombre').textContent = data.usuario;
+    
+    // Valores para vista
+    document.getElementById('ver-nombre').textContent = data.nombre;
+    document.getElementById('ver-apellido').textContent = data.apellido || '';
+    document.getElementById('ver-usuario').textContent = data.usuario;
+    document.getElementById('ver-rol').textContent = data.rol;
+    
+    // Valores para edición
+    document.getElementById('editar-nombre').value = data.nombre;
+    document.getElementById('editar-apellido').value = data.apellido || '';
+    document.getElementById('editar-usuario').value = data.usuario;
+    document.getElementById('editar-rol').value = data.rol;
+    document.getElementById('editar-password').value = '';
+    
+    deshabilitarEdicion();
+}
+
+function habilitarEdicion() {
+    modoEdicion = true;
+    
+    document.querySelectorAll('#modalEditar .campo-valor').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('#modalEditar .edit-input').forEach(el => el.style.display = 'block');
+    
+    document.getElementById('btn-editar').disabled = true;
+    document.getElementById('btn-guardar').disabled = false;
+    document.getElementById('btn-cancelar').disabled = false;
+}
+
+function deshabilitarEdicion() {
+    modoEdicion = false;
+    
+    document.querySelectorAll('#modalEditar .campo-valor').forEach(el => el.style.display = 'block');
+    document.querySelectorAll('#modalEditar .edit-input').forEach(el => el.style.display = 'none');
+    
+    document.getElementById('btn-editar').disabled = false;
+    document.getElementById('btn-guardar').disabled = true;
+    document.getElementById('btn-cancelar').disabled = true;
+}
+
+function cancelarEdicion() {
+    if (usuarioActual) {
+        fetch(`/api/usuarios/${usuarioActual}/`)
+            .then(response => response.json())
+            .then(data => {
+                llenarModalEdicion(data);
+            });
+    }
+}
+
+function guardarCambios() {
+    const data = {
+        nombre: document.getElementById('editar-nombre').value,
+        apellido: document.getElementById('editar-apellido').value,
+        usuario: document.getElementById('editar-usuario').value,
+        rol: document.getElementById('editar-rol').value,
+        password: document.getElementById('editar-password').value
+    };
+    
+    // Obtener token CSRF del formulario de edición
+    const csrftoken = document.querySelector('#form-editar [name=csrfmiddlewaretoken]').value;
+    
+    fetch(`/api/usuarios/actualizar/${usuarioActual}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Usuario actualizado correctamente');
+            deshabilitarEdicion();
+            cargarUsuarios();
+            if (usuarioActual) {
+                fetch(`/api/usuarios/${usuarioActual}/`)
+                    .then(r => r.json())
+                    .then(data => llenarModalEdicion(data));
+            }
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error de conexión');
+    });
+}
+
+function eliminarUsuario(id, usuario) {
+    if (confirm(`¿Eliminar usuario "${usuario}"?`)) {
+        // Obtener token CSRF
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        fetch(`/api/usuarios/eliminar/${id}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': csrftoken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                cargarUsuarios();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error de conexión');
+        });
+    }
+}
+
+// Funciones auxiliares
+function cerrarModal(modal) {
+    if (modal === 'crear') {
+        document.getElementById('modalCrear').style.display = 'none';
+        document.getElementById('form-crear').reset();
+    } else {
+        document.getElementById('modalEditar').style.display = 'none';
+        deshabilitarEdicion();
+        usuarioActual = null;
+    }
+}
+
+// Cerrar modales con ESC
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        if (document.getElementById('modalCrear').style.display === 'block') {
+            cerrarModal('crear');
+        }
+        if (document.getElementById('modalEditar').style.display === 'block') {
+            cerrarModal('editar');
+        }
+    }
+});
+</script>
+{% endblock %}

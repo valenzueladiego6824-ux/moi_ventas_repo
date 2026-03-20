@@ -1,0 +1,63 @@
+/* Botones */
+.btn-action {
+    background-color: #555;
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 5px;
+    border: 2px solid #F5D627;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.btn-action:hover {
+    background-color: #F5D627;
+    color: #000;
+    transform: translateY(-2px);
+}
+
+/* Botones de acción en tablas */
+.btn-accion {
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin: 2px;
+    font-size: 0.9em;
+    transition: background-color 0.3s ease;
+}
+
+.btn-editar {
+    background-color: #28a745;
+}
+
+.btn-editar:hover {
+    background-color: #218838;
+}
+
+.btn-eliminar {
+    background-color: #dc3545;
+}
+
+.btn-eliminar:hover {
+    background-color: #c82333;
+}
+
+.btn-ver {
+    background-color: #007bff;
+}
+
+.btn-ver:hover {
+    background-color: #0056b3;
+}
+
+.btn-pdf {
+    background-color: #e74c3c;
+}
+
+.btn-pdf:hover {
+    background-color: #c0392b;
+}

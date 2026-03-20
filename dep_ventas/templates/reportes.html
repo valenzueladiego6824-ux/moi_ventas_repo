@@ -1,0 +1,393 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reportes - MOI{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/reportes.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="reportes-container">
+    <h1>Módulo de Reportes</h1>
+    <p class="subtitulo">Filtra y visualiza la información</p>
+
+    <!-- SECCIÓN 1: FILTROS DE BÚSQUEDA -->
+    <div class="filters-section">
+        <h3>Búsqueda personalizada</h3>
+        <div class="filters-grid">
+            <select id="filtro-obra" class="form-control">
+                <option value="">Todas las obras</option>
+            </select>
+            
+            <select id="filtro-mes" class="form-control">
+                <option value="">Todos los meses</option>
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+            </select>
+            
+            <select id="filtro-anio" class="form-control">
+                <option value="">Todos los años</option>
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
+                <option value="2022">2022</option>
+            </select>
+            
+            <input type="text" id="filtro-articulo" class="form-control" 
+                   placeholder="Artículo (ej: cemento)" list="articulos_list">
+            <datalist id="articulos_list"></datalist>
+            
+            <input type="text" id="filtro-proveedor" class="form-control" 
+                   placeholder="Proveedor" list="proveedores_list">
+            <datalist id="proveedores_list"></datalist>
+        </div>
+        
+        <div class="filters-actions">
+            <button onclick="buscarFiltros()" class="btn-filtro">Buscar</button>
+            <button onclick="limpiarFiltros()" class="btn-filtro limpiar">Limpiar</button>
+        </div>
+    </div>
+
+    <!-- SECCIÓN 2: REPORTES FIJOS -->
+    <div class="reportes-grid">
+        <!-- Resumen por Obra -->
+        <div class="reporte-card">
+            <div class="reporte-icono">
+                <img src="{% static 'img/graph-chart.png' %}" alt="Resumen por Obra">
+            </div>
+            <h3>Resumen por Obra</h3>
+            <p>Total gastado y órdenes por obra</p>
+            <button onclick="cargarReporte('resumen')" class="btn-reporte">Ver Resumen</button>
+        </div>
+        
+        <!-- Compras Mensuales -->
+        <div class="reporte-card">
+            <div class="reporte-icono">
+                <img src="{% static 'img/time.png' %}" alt="Compras Mensuales">
+            </div>
+            <h3>Compras Mensuales</h3>
+            <p>Resumen de compras por mes</p>
+            <button onclick="cargarReporte('mensual')" class="btn-reporte">Ver Mensual</button>
+        </div>
+        
+        <!-- Detalle por Obra -->
+        <div class="reporte-card">
+            <div class="reporte-icono">
+                <img src="{% static 'img/crane.png' %}" alt="Detalle por Obra">
+            </div>
+            <h3>Detalle por Obra</h3>
+            <p>Órdenes específicas por obra</p>
+            <select id="obra-detalle-select" class="form-control" style="margin:10px 0">
+                <option value="">Seleccionar obra...</option>
+            </select>
+            <button onclick="cargarReporte('detalle')" class="btn-reporte">Ver Detalle</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para resultados -->
+<div id="reporteModal" class="modal">
+    <div class="modal-content modal-lg">
+        <div class="modal-header">
+            <h2 id="modal-titulo">Resultados</h2>
+            <span class="close-modal" onclick="cerrarModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="modal-body">
+            <div id="reporte-resultados">
+                <p class="text-center">Selecciona un reporte</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="exportarModalExcel()" class="btn-success">Exportar a Excel</button>
+            <button onclick="cerrarModal()" class="btn-clear">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Variables globales
+let ultimaBusqueda = [];
+let reporteActual = { tipo: '', titulo: '' };
+let reporteTipo = '';  // Para identificar si es búsqueda o reporte fijo
+
+// Mapeo de meses
+const meses = {
+    1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+    5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+    9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+};
+
+// Cargar datos iniciales
+document.addEventListener('DOMContentLoaded', function() {
+    cargarObras();
+    cargarArticulos();
+    cargarProveedores();
+});
+
+function cargarObras() {
+    fetch("{% url 'api_obras' %}")
+        .then(r => r.json())
+        .then(data => {
+            const select1 = document.getElementById('filtro-obra');
+            const select2 = document.getElementById('obra-detalle-select');
+            
+            data.forEach(obra => {
+                const option1 = new Option(obra, obra);
+                const option2 = new Option(obra, obra);
+                select1.appendChild(option1);
+                select2.appendChild(option2.cloneNode(true));
+            });
+        });
+}
+
+function cargarArticulos() {
+    fetch("{% url 'api_articulos' %}")
+        .then(r => r.json())
+        .then(data => {
+            const datalist = document.getElementById('articulos_list');
+            datalist.innerHTML = '';
+            data.forEach(art => {
+                const option = new Option(art, art);
+                datalist.appendChild(option);
+            });
+        });
+}
+
+function cargarProveedores() {
+    fetch("{% url 'api_proveedores' %}")
+        .then(r => r.json())
+        .then(data => {
+            const datalist = document.getElementById('proveedores_list');
+            datalist.innerHTML = '';
+            data.forEach(p => {
+                const option = new Option(p.nombre, p.nombre);
+                datalist.appendChild(option);
+            });
+        });
+}
+
+function buscarFiltros() {
+    const params = new URLSearchParams({
+        obra: document.getElementById('filtro-obra').value,
+        mes: document.getElementById('filtro-mes').value,
+        anio: document.getElementById('filtro-anio').value,
+        articulo: document.getElementById('filtro-articulo').value,
+        proveedor: document.getElementById('filtro-proveedor').value
+    });
+    
+    // Mostrar modal
+    document.getElementById('modal-titulo').textContent = 'Resultados de Búsqueda';
+    document.getElementById('reporteModal').style.display = 'block';
+    document.getElementById('reporte-resultados').innerHTML = '<p class="text-center">Buscando...</p>';
+    
+    fetch(`/api/reporte-busqueda/?${params}`)
+        .then(r => r.json())
+        .then(data => {
+            ultimaBusqueda = data;
+            window.reporteData = data;  // Guardar para exportar
+            reporteTipo = 'busqueda';   // Marcar como búsqueda
+            mostrarResultadosEnModal(data);
+        });
+}
+
+function mostrarResultadosEnModal(data) {
+    if (data.length === 0) {
+        document.getElementById('reporte-resultados').innerHTML = '<p class="text-center">No se encontraron resultados</p>';
+        return;
+    }
+    
+    let html = '<table class="data-table"><thead><tr>' +
+               '<th>Obra</th><th>Orden</th><th>Fecha</th><th>Artículo</th>' +
+               '<th>Unidad</th><th>Cantidad</th><th>Precio</th><th>Proveedor</th>' +
+               '</tr></thead><tbody>';
+    
+    data.forEach(item => {
+        html += `<tr>
+            <td>${item.obra}</td>
+            <td>${item.orden}</td>
+            <td>${item.fecha}</td>
+            <td>${item.articulo}</td>
+            <td>${item.unidad}</td>
+            <td>${item.cantidad}</td>
+            <td>$${item.precio ? item.precio.toFixed(2) : '0.00'}</td>
+            <td>${item.proveedor}</td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    document.getElementById('reporte-resultados').innerHTML = html;
+}
+
+function cargarReporte(tipo) {
+    let url = '';
+    let titulo = '';
+    
+    if (tipo === 'resumen') {
+        url = "{% url 'reporte_obra_resumen' %}";
+        titulo = 'Resumen de Gastos por Obra';
+    } else if (tipo === 'mensual') {
+        url = "{% url 'reporte_compras_mensuales' %}";
+        titulo = 'Compras Mensuales';
+    } else if (tipo === 'detalle') {
+        const obra = document.getElementById('obra-detalle-select').value;
+        if (!obra) {
+            alert('Selecciona una obra');
+            return;
+        }
+        url = `{% url 'reporte_obra_detalle' %}?obra=${encodeURIComponent(obra)}`;
+        titulo = `Detalle de Obra: ${obra}`;
+    }
+    
+    reporteActual = { tipo, titulo };
+    reporteTipo = tipo;  // Guardar el tipo
+    document.getElementById('modal-titulo').textContent = titulo;
+    document.getElementById('reporteModal').style.display = 'block';
+    document.getElementById('reporte-resultados').innerHTML = '<p class="text-center">Cargando...</p>';
+    
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            window.reporteData = data;
+            mostrarTablaModal(data, tipo);
+        });
+}
+
+function mostrarTablaModal(data, tipo) {
+    let html = '<table class="data-table"><thead><tr>';
+    
+    if (tipo === 'resumen') {
+        html += '<th>Obra</th><th>Órdenes</th><th>Total Gastado</th>';
+    } else if (tipo === 'mensual') {
+        html += '<th>Mes</th><th>Año</th><th>Órdenes</th><th>Total</th>';  // Mes primero
+    } else if (tipo === 'detalle') {
+        html += '<th>Orden</th><th>Fecha</th><th>Estatus</th><th>Folio</th><th>Artículos</th><th>Total</th>';
+    }
+    
+    html += '</tr></thead><tbody>';
+    
+    if (tipo === 'resumen') {
+        data.forEach(item => {
+            html += `<tr><td>${item.obra}</td><td>${item.ordenes}</td><td>$${item.total ? item.total.toFixed(2) : '0.00'}</td></tr>`;
+        });
+    } else if (tipo === 'mensual') {
+        data.forEach(item => {
+            html += `<tr><td>${meses[item.mes] || item.mes}</td><td>${item.anio}</td><td>${item.ordenes}</td><td>$${item.total ? item.total.toFixed(2) : '0.00'}</td></tr>`;
+        });
+    } else if (tipo === 'detalle') {
+        data.forEach(item => {
+            html += `<tr><td>${item.orden}</td><td>${item.fecha}</td><td>${item.estatus}</td><td>${item.folio}</td><td>${item.articulos}</td><td>$${item.total ? item.total.toFixed(2) : '0.00'}</td></tr>`;
+        });
+    }
+    
+    html += '</tbody></table>';
+    document.getElementById('reporte-resultados').innerHTML = html;
+}
+
+function exportarModalExcel() {
+    const data = window.reporteData || [];
+    if (data.length === 0) {
+        alert('No hay datos para exportar');
+        return;
+    }
+    
+    let columnas = [];
+    let titulo = '';
+    
+    // Detectar tipo de reporte
+    if (reporteTipo === 'busqueda') {
+        columnas = ['Obra', 'Orden', 'Fecha', 'Artículo', 'Unidad', 'Cantidad', 'Precio', 'Proveedor'];
+        titulo = 'Busqueda Personalizada';
+    } else if (reporteTipo === 'resumen') {
+        columnas = ['Obra', 'Órdenes', 'Total Gastado'];
+        titulo = reporteActual.titulo;
+    } else if (reporteTipo === 'mensual') {
+        columnas = ['Mes', 'Año', 'Órdenes', 'Total'];  // Mes primero
+        titulo = reporteActual.titulo;
+    } else if (reporteTipo === 'detalle') {
+        columnas = ['Orden', 'Fecha', 'Estatus', 'Folio', 'Artículos', 'Total'];
+        titulo = reporteActual.titulo;
+    }
+    
+    // Mostrar carga
+    const btnExportar = event.target;
+    const textoOriginal = btnExportar.textContent;
+    btnExportar.textContent = 'Exportando...';
+    btnExportar.disabled = true;
+    
+    fetch("{% url 'exportar_excel' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ 
+            data: data, 
+            columnas: columnas, 
+            titulo: titulo 
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw err; });
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${titulo.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al exportar: ' + (error.error || 'Error desconocido'));
+    })
+    .finally(() => {
+        btnExportar.textContent = textoOriginal;
+        btnExportar.disabled = false;
+    });
+}
+
+function limpiarFiltros() {
+    document.getElementById('filtro-obra').value = '';
+    document.getElementById('filtro-mes').value = '';
+    document.getElementById('filtro-anio').value = '';
+    document.getElementById('filtro-articulo').value = '';
+    document.getElementById('filtro-proveedor').value = '';
+    ultimaBusqueda = [];
+}
+
+function cerrarModal() {
+    document.getElementById('reporteModal').style.display = 'none';
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}
