@@ -29,7 +29,7 @@
     <table>
       <tr>
         <th><a href="{% url 'inicio' %}">Inicio</a></th>
-        <th><a href="{% url 'registrar_articulos' %}">Registrar Artículos</a></th>
+        <th><a href="{% url 'registrar_articulos' %}">Capturar Orden de Compra</a></th>
         <th><a href="{% url 'reportes' %}">Reportes</a></th>
         
         {% if request.session.usuario_rol == 'Gerente' %}
